@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/gob"
 	"log"
 	"time"
@@ -9,28 +10,22 @@ import (
 
 //定义区块
 type Block struct {
-	Timestamp     int64  //时间戳
-	Data          []byte //交易数据
-	PrevBlockHash []byte //上一块数据的hash
-	Hash          []byte //当前数据hash
-	Nonce         int    //工作量证明
+	Timestamp int64 //时间戳
+	//Data          []byte //交易数据
+	Transactions  []*Transaction //交易的集合
+	PrevBlockHash []byte         //上一块数据的hash
+	Hash          []byte         //当前数据hash
+	Nonce         int            //工作量证明
 }
 
-////设置结构体对象哈希
-//func (block *Block) SetHash() {
-//	//处理当前时间，转化为10进制字符串，再转为字节
-//	timestamp := []byte(strconv.FormatInt(block.Timestamp, 10))
-//	//叠加要哈希的数据
-//	headers := bytes.Join([][]byte{block.PrevBlockHash, block.Data, timestamp}, []byte{})
-//	hash := sha256.Sum256(headers)
-//	//设置hash
-//	block.Hash = hash[:]
-//}
-
 //创建一个区块
-func NewBlock(data string, preBlockHash []byte) *Block {
+func NewBlock(transaction []*Transaction, preBlockHash []byte) *Block {
 	//block是一个指针，取得对象初始化之后的地址
-	block := &Block{Timestamp: time.Now().Unix(), Data: []byte(data), PrevBlockHash: preBlockHash, Hash: []byte{}}
+	block := &Block{Timestamp: time.Now().Unix(),
+		Transactions:  transaction,
+		PrevBlockHash: preBlockHash,
+		Hash:          []byte{}}
+
 	pow := NewProofOfWork(block) //挖矿附加这个区块
 	nonce, hash := pow.Run()     //开始挖矿
 	block.Hash = hash[:]
@@ -40,8 +35,8 @@ func NewBlock(data string, preBlockHash []byte) *Block {
 }
 
 //创建创世区块
-func NewGenesisBlock() *Block {
-	return NewBlock("xxx的区块链", []byte{})
+func NewGenesisBlock(coinbase *Transaction) *Block {
+	return NewBlock([]*Transaction{coinbase}, []byte{})
 }
 
 //对象转化位二进制字节集
@@ -65,4 +60,16 @@ func DeSerializeBlock(data []byte) *Block {
 		log.Panic(err) //错误处理
 	}
 	return &block
+}
+
+//对于交易实现哈希计算
+func (block *Block) HashTransactions() []byte {
+	var txHashes [][]byte
+	var txHash [32]byte
+	for _, tx := range block.Transactions {
+		txHashes = append(txHashes, tx.ID)
+	}
+	txHash = sha256.Sum256(bytes.Join(txHashes, []byte{}))
+	return txHash[:]
+
 }

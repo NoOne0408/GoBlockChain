@@ -31,7 +31,7 @@ func (pow *ProofOfWork) prepareData(nonce int) []byte {
 	data := bytes.Join(
 		[][]byte{
 			pow.block.PrevBlockHash,       //上一块哈希
-			pow.block.Data,                //当前数据
+			pow.block.HashTransactions(),  //当前数据
 			IntToHex(pow.block.Timestamp), //时间16进制
 			IntToHex(int64(targetBits)),   //位数16进制
 			IntToHex(int64((nonce))),      //保存工作量的nonce
@@ -45,7 +45,7 @@ func (pow *ProofOfWork) Run() (int, []byte) {
 	var hashInt big.Int
 	var hash [32]byte
 	nonce := 0
-	fmt.Printf("当前挖矿计算的数据%s", pow.block.Data)
+	//fmt.Printf("当前挖矿计算的数据%s", pow.block.Data)
 	for nonce < maxNonce {
 		data := pow.prepareData(nonce)     //准备数据
 		hash = sha256.Sum256(data)         //计算出哈希
